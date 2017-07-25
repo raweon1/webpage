@@ -1,0 +1,17 @@
+<div>
+    <p>{{ campaign.name }}</p>
+</div>
+<div>
+    {% for blocks in dsl %}
+        <ul>
+            {% for stimulus_block in blocks.0 %}
+                <ul>
+                    {% for stimuli in stimulus_block %}
+                        <li>{{ stimuli.name }}</li>
+                    {% endfor %}
+                </ul>
+            {% endfor %}
+            <li>{{ blocks.1 }}</li>
+        </ul>
+    {% endfor %}
+</div>
