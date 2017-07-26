@@ -6,11 +6,10 @@ from django.dispatch import receiver
 
 from .models import Campaign, Task, Rating_block, Stimulus
 from .dsl import validate_dsl, keywords, is_quoted
+
 from pyparsing import ParseException
 
-
-# TODO Campaign -> inline task zeigen nicht bisherige DSL an
-# TODO Task zeigt nicht bisherige DSL an
+from ast import literal_eval
 
 
 @admin.register(Stimulus)
@@ -34,8 +33,19 @@ class AdminTaskForm(forms.ModelForm):
         model = Task
         fields = "__all__"
 
+    def __init__(self, *args, **kwargs):
+        super(AdminTaskForm, self).__init__(*args, **kwargs)
+        if self.initial:
+            rating_blocks = Rating_block.objects.filter(task_id=self.instance)
+            self.fields['dsl_field'].initial = "\n".join(
+                ("\n".join(str(stimuli) for stimuli in literal_eval(block.stimuli)) + "\n" + block.answer_type) for
+                block in rating_blocks)
+
     def clean_dsl_field(self):
-        dsl = self.cleaned_data["dsl_field"]
+        dsl = self.cleaned_data["dsl_field"].replace("\r", "")
+        # falls das Feld nicht geändert wurde -> keine neue überprüfung der Syntax
+        if not self.fields['dsl_field'].has_changed(data=dsl, initial=self.fields['dsl_field'].initial):
+            return self.cleaned_data["dsl_field"]
         # Check richtige Syntax
         try:
             dsl = validate_dsl(dsl)
@@ -51,12 +61,15 @@ class AdminTaskForm(forms.ModelForm):
                             Stimulus.objects.get(name=stimuli)
                         except ObjectDoesNotExist:
                             raise forms.ValidationError("Stimulus %s does not exist" % stimuli)
-        self.cleaned_data["dsl_field"] = dsl
+        self.cleaned_data["dsl_field"] = str(dsl)
         return self.cleaned_data["dsl_field"]
 
     def save(self, commit=True):
         instance = super(AdminTaskForm, self).save(commit=commit)
-        dsl = self.cleaned_data['dsl_field']
+        # falls die DSL nicht geändert wurde -> keine Änderung der Rating_blocks
+        dsl = self.cleaned_data['dsl_field'].replace("\r", "")
+        if not self.fields['dsl_field'].has_changed(data=dsl, initial=self.fields['dsl_field'].initial):
+            return instance
         instance.dsl = dsl
         return instance
 
@@ -78,8 +91,8 @@ def createRatingblockFromAdminTask(sender, **kwargs):
     instance = kwargs["instance"]
     if instance is not None:
         try:
+            dsl = literal_eval(instance.dsl)
             Rating_block.objects.filter(task_id=instance).delete()
-            dsl = instance.dsl
             rating_block_nr = 0
             for ratingblock in dsl:
                 rb = Rating_block(task_id=instance, block_nr=rating_block_nr)

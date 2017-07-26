@@ -1,17 +1,21 @@
 <div>
     <p>{{ campaign.name }}</p>
 </div>
-<div>
-    {% for blocks in dsl %}
-        <ul>
-            {% for stimulus_block in blocks.0 %}
-                <ul>
-                    {% for stimuli in stimulus_block %}
-                        <li>{{ stimuli.name }}</li>
+{% load extra_tags %}
+<div align="center">
+    <form>
+        {% for field, rating_blocks in form|zip:dsl %}
+            {% for stimulus_blocks in rating_blocks.0 %}
+                {% for stimulus_block in stimulus_blocks %}
+                    {% for stimulus in stimulus_block %}
+                        {{ stimulus.name }}
                     {% endfor %}
-                </ul>
+                {% endfor %}
+                <br>
             {% endfor %}
-            <li>{{ blocks.1 }}</li>
-        </ul>
-    {% endfor %}
+            {{ field }}
+        {% endfor %}
+        <input type="submit", value="Submit">
+    </form>
 </div>
+

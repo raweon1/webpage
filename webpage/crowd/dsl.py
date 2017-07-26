@@ -22,6 +22,7 @@ def getStimuli(dsl):
     list = []
     for rating_block in dsl:
         rating_block_list = []
+        tmp_list = []
         for stimulus_block in rating_block[0]:
             stimulus_block_list = []
             for stimulus in stimulus_block:
@@ -31,7 +32,8 @@ def getStimuli(dsl):
                 else:
                     stimulus_list.append(Stimulus.objects.get(name=stimulus))
                 stimulus_block_list.append(stimulus_list)
-            rating_block_list.append(stimulus_block_list)
+            tmp_list.append(stimulus_block_list)
+        rating_block_list.append(tmp_list)
         rating_block_list.append(rating_block[1])
         list.append(rating_block_list)
     return list
