@@ -4,12 +4,15 @@ from django import forms
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .models import Campaign, Task, Rating_block, Stimulus
+from .models import Campaign, Task, Rating_block, Stimulus, Answer, Worker
 from .dsl import validate_dsl, keywords, is_quoted
 
 from pyparsing import ParseException
 
 from ast import literal_eval
+
+admin.site.register(Answer)
+admin.site.register(Worker)
 
 
 @admin.register(Stimulus)

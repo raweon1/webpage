@@ -61,13 +61,16 @@ class Worker(models.Model):
     name = models.CharField(max_length=25)
 
     def __str__(self):
-        return self.name
+        return "Worker_" + self.name
 
 
 class Answer(models.Model):
     rating_block_id = models.ForeignKey(Rating_block, on_delete=models.CASCADE)
     worker_id = models.ForeignKey(Worker, on_delete=models.CASCADE)
     answer = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.answer
 
 
 class WorkerProgress(models.Model):

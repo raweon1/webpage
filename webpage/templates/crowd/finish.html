@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <div align="center">
+        <ul>
+            {% for task in ratings %}
+                {% for task_nr, block in task.items %}
+                    {% for block_nr, answer in block.items %}
+                        <li>
+                        {{ task_nr }}.{{ block_nr }}.{{ answer }}
+                        </li>
+                    {% endfor %}
+                {% endfor %}
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
