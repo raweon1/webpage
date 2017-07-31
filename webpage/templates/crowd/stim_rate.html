@@ -3,7 +3,12 @@
 </div>
 {% load extra_tags %}
 <div align="center">
-    <form>
+    {% url "rate" "Campaign1" "0" as the_url %}
+
+    <a href="{{ the_url }}">I'm linking to {{ the_url }}</a>
+
+    <form method="post">
+        {% csrf_token %}
         {% for field, rating_blocks in form|zip:dsl %}
             {% for stimulus_blocks in rating_blocks.0 %}
                 {% for stimulus_block in stimulus_blocks %}
@@ -15,6 +20,7 @@
             {% endfor %}
             {{ field }}
         {% endfor %}
+        <br>
         <input type="submit", value="Submit">
     </form>
 </div>

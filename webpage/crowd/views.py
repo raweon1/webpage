@@ -1,6 +1,5 @@
 from django.shortcuts import render
-from django.http import Http404
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 
 from django import forms
 
@@ -23,13 +22,14 @@ def finish(request):
 
 
 class RateForm(forms.Form):
-    def __init__(self, answer_types, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        mode = kwargs.pop("fields")
         super(RateForm, self).__init__(*args, **kwargs)
         i = 0
-        for answer in answer_types:
+        for answer in mode:
             if answer == keywords['mode_acr']:
-                acr = (("a1", 1), ("b2", 2), ("c3", 3), ("d4", 4), ("e5", 5),)
-                self.fields["answer_" + str(i)] = forms.ChoiceField(choices=acr, widget=forms.RadioSelect)
+                acr = (("1", 1), ("2", 2), ("3", 3), ("4", 4), ("5", 5),)
+                self.fields['answer_' + str(i)] = forms.ChoiceField(choices=acr, widget=forms.RadioSelect)
             elif answer == keywords['mode_text']:
                 self.fields['answer_' + str(i)] = forms.CharField(max_length=255)
             i += 1
@@ -38,14 +38,24 @@ class RateForm(forms.Form):
 def rate(request, campaign_name, task_nr):
     try:
         task_nr = int(task_nr)
-        # fetch Campaign
         campaign = Campaign.objects.get(name=campaign_name)
         # fetch Task to display | task_nr wird nicht als kontinuierlich enforced, daher sortieren (wird durch Meta class im Model erledigt) dann [task_nr] nehmen
-        task = Task.objects.filter(campaign_id=campaign)[task_nr]
-        rating_blocks = Rating_block.objects.filter(task_id=task)
+        tasks = Task.objects.filter(campaign_id=campaign)
+        rating_blocks = Rating_block.objects.filter(task_id=tasks[task_nr])
         # dsl ist als string gespeichert -> muss in Stimulus Objekte gewandelt werden
         dsl = getStimuli([[literal_eval(blocks.stimuli), blocks.answer_type] for blocks in rating_blocks])
-        form = RateForm([rating_block[1] for rating_block in dsl])
+        if request.method == "POST":
+            form = RateForm(request.POST, fields=[rating_block[1] for rating_block in dsl])
+            if form.is_valid():
+                #TODO do something with cleaned_data
+                print(form.cleaned_data)
+                if task_nr >= tasks.__len__() - 1:
+                    #TODO redirect to finish_view
+                    return HttpResponseRedirect("/crowd/finish/")
+                else:
+                    return HttpResponseRedirect("/crowd/{}/rate/{}".format(campaign_name, task_nr + 1))
+        else:
+            form = RateForm(fields=[rating_block[1] for rating_block in dsl])
     except Campaign.DoesNotExist:
         raise Http404("Campaign %s does not exist" % campaign_name)
     except Task.DoesNotExist:
