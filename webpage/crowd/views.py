@@ -89,4 +89,4 @@ def rate(request, campaign_name, task_nr):
         raise Http404("Campaign %s does not exist" % campaign_name)
     except:
         raise Http404("Unknown Error")
-    return render(request, "crowd/stim_rate.html", {'campaign': campaign, 'dsl': dsl, "form": form})
+    return render(request, "crowd/stim_rate.html", {'campaign': campaign, 'instruction': tasks[task_nr].instruction, 'dsl': dsl, "form": form})

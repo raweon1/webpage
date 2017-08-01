@@ -1,27 +1,36 @@
-<div>
-    <p>{{ campaign.name }}</p>
-</div>
-{% load extra_tags %}
-<div align="center">
-    {% url "rate" "Campaign1" "0" as the_url %}
+{% load static %}
+<head>
+    <link rel="stylesheet" type="text/css" href="{% static "crowd/tmp.css" %}">
+</head>
+<body>
+<div class="container">
+    <h1>{{ campaign.name }}</h1>
 
-    <a href="{{ the_url }}">I'm linking to {{ the_url }}</a>
-
-    <form method="post">
-        {% csrf_token %}
-        {% for field, rating_blocks in form|zip:dsl %}
-            {% for stimulus_blocks in rating_blocks.0 %}
-                {% for stimulus_block in stimulus_blocks %}
-                    {% for stimulus in stimulus_block %}
-                        {{ stimulus.name }}
+    {% load extra_tags %}
+    <div class="task-block">
+        <form method="post">
+            {% csrf_token %}
+            <div class="instruction">
+                {{ instruction }}
+            </div>
+            {% for field, rating_blocks in form|zip:dsl %}
+                <div class="rating-block">
+                    {% for stimulus_blocks in rating_blocks.0 %}
+                        <div class="stimulus-block">
+                            {% for stimulus_block in stimulus_blocks %}
+                              <div class="stimulus">
+                                {% for stimulus in stimulus_block %}
+                                    {% display_stimulus stimulus %}
+                                {% endfor %}
+                                </div>
+                            {% endfor %}
+                        </div>
                     {% endfor %}
-                {% endfor %}
-                <br>
+                    {{ field }}
+                </div>
             {% endfor %}
-            {{ field }}
-        {% endfor %}
-        <br>
-        <input type="submit", value="Submit">
-    </form>
+            <input id="submit" type="submit", value="Submit">
+        </form>
+    </div>
 </div>
-
+</body>

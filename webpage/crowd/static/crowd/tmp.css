@@ -1,0 +1,64 @@
+body {
+}
+
+.container {
+    margin: auto;
+    max-width: 1500px;
+    /*border: 3px solid red;*/
+    padding: 10px;
+}
+
+.rating-block {
+    margin: auto;
+    /*border: 3px solid blue;*/
+    padding: 10px;
+    text-align: center;
+}
+
+.stimulus-block {
+    margin: auto;
+    /*border: 3px solid yellow;*/
+    padding: 10px;
+    text-align: center;
+}
+
+.stimulus-block > * {
+    vertical-align: middle;
+}
+
+.stimulus {
+    margin: auto;
+    display: inline-block;
+    /*border: 3px solid green;*/
+    padding: 10px;
+}
+
+.task-block {
+    text-align: right;
+    /*border: 3px solid black;*/
+}
+
+.instruction {
+    margin: auto;
+    text-align: center;
+    font-size: 2.5em;
+    max-width: 50%;
+    /*border: 3px solid aqua;*/
+}
+
+input[type=submit] {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 16px 32px;
+    text-decoration: none;
+    margin: 4px 2px;
+    cursor: pointer;
+    width: 20%;
+    height: 50px;
+}
+
+img {
+    max-width: 200px;
+    max-height: 200px;
+}

@@ -74,6 +74,7 @@ class AdminTaskForm(forms.ModelForm):
         if not self.fields['dsl_field'].has_changed(data=dsl, initial=self.fields['dsl_field'].initial):
             return instance
         instance.dsl = dsl
+        print(dsl)
         return instance
 
 
@@ -91,6 +92,7 @@ class AdminTask(admin.ModelAdmin):
 
 @receiver(post_save, sender=Task)
 def createRatingblockFromAdminTask(sender, **kwargs):
+    print(sender)
     instance = kwargs["instance"]
     if instance is not None:
         try:
@@ -112,3 +114,12 @@ def createRatingblockFromAdminTask(sender, **kwargs):
 class AdminCampaign(admin.ModelAdmin):
     exclude = ("current_user_count",)
     inlines = (AdminInlineTask,)
+
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save()
+        for instance in instances:
+            try:
+                instance.dsl
+                instance.save()
+            except AttributeError:
+                pass
