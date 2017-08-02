@@ -1,20 +1,17 @@
-{% load static %}
-<head>
-    <link rel="stylesheet" type="text/css" href="{% static "crowd/tmp.css" %}">
-</head>
-<body>
-<div class="container">
-    <h1>{{ campaign.name }}</h1>
+{% extends "crowd/base.html" %}
 
+{% block content %}
     {% load extra_tags %}
-    <div class="task-block">
-        <form method="post">
+    <form method="post">
+        <div class="task-block color">
             {% csrf_token %}
-            <div class="instruction">
-                {{ instruction }}
-            </div>
+            {% if instruction %}
+                <div class="container-instruction color">
+                    {{ instruction }}
+                </div>
+            {% endif %}
             {% for field, rating_blocks in form|zip:dsl %}
-                <div class="rating-block">
+                <div class="rating-block color">
                     {% for stimulus_blocks in rating_blocks.0 %}
                         <div class="stimulus-block">
                             {% for stimulus_block in stimulus_blocks %}
@@ -29,8 +26,9 @@
                     {{ field }}
                 </div>
             {% endfor %}
-            <input id="submit" type="submit", value="Submit">
-        </form>
-    </div>
-</div>
-</body>
+            <div class="container-submit">
+                <input id="submit" type="submit", value="Submit">
+            </div>
+        </div>
+    </form>
+{% endblock %}

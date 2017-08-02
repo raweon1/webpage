@@ -4,7 +4,7 @@ from django import forms
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .models import Campaign, Task, Rating_block, Stimulus, Answer, Worker
+from .models import Campaign, Task, Rating_block, Stimulus, Answer, Worker, WorkerProgress
 from .dsl import validate_dsl, keywords, is_quoted
 
 from pyparsing import ParseException
@@ -13,6 +13,7 @@ from ast import literal_eval
 
 admin.site.register(Answer)
 admin.site.register(Worker)
+admin.site.register(WorkerProgress)
 
 
 @admin.register(Stimulus)
@@ -74,7 +75,6 @@ class AdminTaskForm(forms.ModelForm):
         if not self.fields['dsl_field'].has_changed(data=dsl, initial=self.fields['dsl_field'].initial):
             return instance
         instance.dsl = dsl
-        print(dsl)
         return instance
 
 
@@ -91,8 +91,7 @@ class AdminTask(admin.ModelAdmin):
 
 
 @receiver(post_save, sender=Task)
-def createRatingblockFromAdminTask(sender, **kwargs):
-    print(sender)
+def create_rating_block_from_admin_task(sender, **kwargs):
     instance = kwargs["instance"]
     if instance is not None:
         try:

@@ -1,10 +1,11 @@
 from django.shortcuts import render
 from django.http import Http404, HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
-
+from django.core.exceptions import ObjectDoesNotExist
 from django import forms
+from django.utils.timezone import now
 
 from .dsl import getStimuli, keywords
-from .models import Campaign, Task, Rating_block, Worker, Answer
+from .models import Campaign, Task, Rating_block, Worker, Answer, WorkerProgress
 
 from ast import literal_eval
 
@@ -13,7 +14,7 @@ def index(request):
     return HttpResponse("Hello, world. You're at the crowd's index.")
 
 
-def setup(request, campaign_name):
+def setup(request):
     campaign_id = request.GET.get("campaignid")
     worker_id = request.GET.get("workerid")
     if not (campaign_id and worker_id):
@@ -24,28 +25,58 @@ def setup(request, campaign_name):
             error = error + 'Expected argument "workerid"<br>'
         error = error + "</div>"
         return HttpResponseBadRequest(error)
-    request.session["campaign_id"] = campaign_id
-    request.session["worker_id"] = worker_id
-    Worker.objects.get_or_create(name=worker_id)
-    return render(request, "crowd/setup.html", {'campaign': campaign_name})
+    campaign = None
+    try:
+        campaign = Campaign.objects.get(name=campaign_id)
+    except ObjectDoesNotExist:
+        return HttpResponseBadRequest("Campaign {} does not exist".format(campaign_id))
+    worker, created = Worker.objects.get_or_create(name=worker_id)
+    request.session["campaign"] = campaign_id
+    request.session["worker"] = worker_id
+    progress = WorkerProgress.objects.filter(worker_id=worker, campaign_id=campaign)
+    if progress.count() == 0:
+        progress = WorkerProgress(worker_id=worker, campaign_id=campaign)
+        progress.save()
+        request.session["task_nr"] = 0
+        return render(request, "crowd/setup.html", {'campaign': campaign_id})
+    elif not campaign.multi_processing and not progress[0].finished:
+        request.session["task_nr"] = progress[0].current_task
+        return HttpResponseRedirect("/crowd/rate/")
+    elif campaign.multi_processing:
+        for tmp in progress:
+            if not tmp.finished:
+                request.session["task_nr"] = tmp.current_task
+                return HttpResponseRedirect("/crowd/rate/")
+        progress = WorkerProgress(worker_id=worker, campaign_id=campaign)
+        progress.save()
+        request.session["task_nr"] = 0
+        return render(request, "crowd/setup.html", {'campaign': campaign_id})
+    request.session.flush()
+    return HttpResponse("You already finished this campaign")
 
 
-def finish(request, campaign_name):
-    tasks = Task.objects.filter(campaign_id=Campaign.objects.get(name=campaign_name))
+def finish(request):
+    tasks = Task.objects.filter(campaign_id=Campaign.objects.get(name=request.session["campaign"]))
     tmp = []
     i = 0
+    progress = WorkerProgress.objects.get(worker_id=Worker.objects.get(name=request.session["worker"]),
+                                          campaign_id=Campaign.objects.get(
+                                              name=request.session["campaign"]),
+                                          finished=False)
+    progress.finished = True
+    progress.end_time = now()
+    progress.save()
     for task in tasks:
         rating_blocks = Rating_block.objects.filter(task_id=task)
         j = 0
         for rating_block in rating_blocks:
-            #TODO multiple ratings sind möglich (was nicht erlaubt sein dürte), sollte schon in der view abgefangen werden
             answer = Answer.objects.get(rating_block_id=rating_block,
-                                           worker_id=Worker.objects.get(name=request.session["worker_id"]))
+                                        worker_progress=progress)
             tmp.append({i: {j: answer}})
             j = j + 1
         i = i + 1
-    print(tmp)
-    return render(request, "crowd/finish.html", {"campaign": campaign_name, "ratings": tmp})
+    request.session.flush()
+    return render(request, "crowd/finish.html", {"ratings": tmp})
 
 
 class RateForm(forms.Form):
@@ -62,10 +93,11 @@ class RateForm(forms.Form):
             i += 1
 
 
-def rate(request, campaign_name, task_nr):
+def rate(request):
     try:
-        task_nr = int(task_nr)
-        campaign = Campaign.objects.get(name=campaign_name)
+        task_nr = int(request.session["task_nr"])
+        print(task_nr)
+        campaign = Campaign.objects.get(name=request.session["campaign"])
         # fetch Task to display | task_nr wird nicht als kontinuierlich enforced, daher sortieren (wird durch Meta class im Model erledigt) dann [task_nr] nehmen
         tasks = Task.objects.filter(campaign_id=campaign)
         rating_blocks = Rating_block.objects.filter(task_id=tasks[task_nr])
@@ -74,19 +106,29 @@ def rate(request, campaign_name, task_nr):
         if request.method == "POST":
             form = RateForm(request.POST, fields=[rating_block[1] for rating_block in dsl])
             if form.is_valid():
+                progress = WorkerProgress.objects.get(worker_id=Worker.objects.get(name=request.session["worker"]),
+                                                      campaign_id=Campaign.objects.get(
+                                                          name=request.session["campaign"]),
+                                                      finished=False)
                 for answer, rating_block in zip(form.cleaned_data, rating_blocks):
-                    tmp = Answer(rating_block_id=rating_block, worker_id=Worker.objects.get(name=request.session["worker_id"]), answer=form.cleaned_data[answer])
+                    tmp = Answer(rating_block_id=rating_block,
+                                 worker_progress=progress,
+                                 answer=form.cleaned_data[answer])
                     tmp.save()
                 if task_nr >= tasks.__len__() - 1:
-                    return HttpResponseRedirect("/crowd/{}/finish/".format(campaign_name))
+                    return HttpResponseRedirect("/crowd/finish/")
                 else:
-                    return HttpResponseRedirect("/crowd/{}/rate/{}".format(campaign_name, task_nr + 1))
+                    request.session["task_nr"] = task_nr + 1
+                    progress.current_task = task_nr + 1
+                    progress.save()
+                    return HttpResponseRedirect("/crowd/rate/")
         else:
             form = RateForm(fields=[rating_block[1] for rating_block in dsl])
     except Campaign.DoesNotExist:
-        raise Http404("Campaign %s does not exist" % campaign_name)
+        raise Http404("Campaign %s does not exist" % request.session["campaign"])
     except Task.DoesNotExist:
-        raise Http404("Campaign %s does not exist" % campaign_name)
-    except:
-        raise Http404("Unknown Error")
-    return render(request, "crowd/stim_rate.html", {'campaign': campaign, 'instruction': tasks[task_nr].instruction, 'dsl': dsl, "form": form})
+        raise Http404("Campaign %s does not exist" % request.session["campaign"])
+    except KeyError:
+        raise Http404("Start with setup")
+    return render(request, "crowd/stim_rate.html",
+                  {'campaign': campaign, 'instruction': tasks[task_nr].instruction, 'dsl': dsl, "form": form})

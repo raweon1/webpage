@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.timezone import now
 
 
 class Stimulus(models.Model):
@@ -36,6 +37,9 @@ class Task(models.Model):
     class Meta:
         ordering = ["task_nr"]
 
+    def __str__(self):
+        return str(self.campaign_id) + "_task:" + str(self.task_nr)
+
 
 class Rating_block(models.Model):
     task_id = models.ForeignKey(Task, on_delete=models.CASCADE)
@@ -49,6 +53,9 @@ class Rating_block(models.Model):
 
     class Meta:
         ordering = ["block_nr"]
+
+    def __str__(self):
+        return str(self.task_id) + "_block:" + str(self.block_nr)
 
 
 class AnswerChoices(models.Model):
@@ -64,18 +71,23 @@ class Worker(models.Model):
         return "Worker_" + self.name
 
 
-class Answer(models.Model):
-    rating_block_id = models.ForeignKey(Rating_block, on_delete=models.CASCADE)
-    worker_id = models.ForeignKey(Worker, on_delete=models.CASCADE)
-    answer = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.answer
-
-
 class WorkerProgress(models.Model):
     worker_id = models.ForeignKey(Worker, on_delete=models.CASCADE)
     campaign_id = models.ForeignKey(Campaign, on_delete=models.CASCADE)
-    current_task = models.ForeignKey(Task, on_delete=models.CASCADE, blank=True)
-    start_time = models.DateField()
-    end_time = models.DateField(default=0, blank=True)
+    current_task = models.IntegerField(default=0)
+    start_time = models.DateTimeField(default=now)
+    end_time = models.DateTimeField(null=True, blank=True)
+    finished = models.BooleanField(default=False)
+
+    def __str__(self):
+        return str(self.worker_id) + "_" + str(self.campaign_id)
+
+
+class Answer(models.Model):
+    rating_block_id = models.ForeignKey(Rating_block, on_delete=models.CASCADE)
+    worker_progress = models.ForeignKey(WorkerProgress, on_delete=models.CASCADE)
+    answer = models.CharField(max_length=255)
+    time = models.DateTimeField(default=now)
+
+    def __str__(self):
+        return str(self.worker_progress.worker_id) + "_" + str(self.rating_block_id) + "_answer:" + self.answer
