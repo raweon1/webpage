@@ -15,6 +15,7 @@ def index(request):
 
 
 def setup(request):
+    #TODO max_current_user_count einbeziehen, wann wird current_user_count reduziert?
     campaign_id = request.GET.get("campaignid")
     worker_id = request.GET.get("workerid")
     if not (campaign_id and worker_id):
@@ -57,7 +58,7 @@ def setup(request):
 
 def finish(request):
     #TODO was passiert wenn eine Trap falsch beantwortet worden ist
-
+    #TODO Seite schön machen, MW-Proof ausgeben
     tasks = Task.objects.filter(campaign_id=Campaign.objects.get(name=request.session["campaign"]))
     tmp = []
     i = 0
@@ -77,8 +78,18 @@ def finish(request):
             tmp.append({i: {j: answer}})
             j = j + 1
         i = i + 1
+    trap = ""
+    for task in tasks:
+        if task.trap:
+            rating_blocks = Rating_block.objects.filter(task_id=task)
+            j = 0
+            for rating_block in rating_blocks:
+                answer = Answer.objects.get(rating_block_id=rating_block,
+                                            worker_progress=progress)
+                if not task.trap_answer == answer.answer:
+                    trap = "YOU FAILED"
     request.session.flush()
-    return render(request, "crowd/finish.html", {"ratings": tmp})
+    return render(request, "crowd/finish.html", {"ratings": tmp, "trap" : trap})
 
 
 class HorizontalRadioSelect(forms.RadioSelect):
@@ -140,3 +151,8 @@ def rate(request):
         raise Http404("Start with setup" + str(e))
     return render(request, "crowd/stim_rate.html",
                   {'campaign': campaign, 'instruction': tasks[task_nr].instruction, 'dsl': dsl, "form": form})
+
+
+def statistic(request):
+    #TODO everything
+    return HttpResponse("Hello")

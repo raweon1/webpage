@@ -1,4 +1,6 @@
+from django.conf.urls import url
 from django.contrib import admin
+from django.contrib.admin import AdminSite
 from django.core.exceptions import ObjectDoesNotExist
 from django import forms
 from django.db.models.signals import post_save
@@ -6,10 +8,22 @@ from django.dispatch import receiver
 
 from .models import Campaign, Task, Rating_block, Stimulus, Answer, Worker, WorkerProgress, AnswerChoices
 from .dsl import validate_dsl, is_quoted, keywords
+from .views import statistic
 
 from pyparsing import ParseException
 
 from ast import literal_eval
+
+
+class AdminStatisticSite(AdminSite):
+    def get_urls(self):
+        urls = super(AdminStatisticSite, self).get_urls()
+        my_urls = [url(r'^statistic/$', self.admin_view(statistic)), ]
+        return urls + my_urls
+
+
+tmp = AdminStatisticSite(name="myadmin")
+
 
 admin.site.register(Answer)
 admin.site.register(Worker)
@@ -48,7 +62,6 @@ class AdminTaskForm(forms.ModelForm):
                  "" if AnswerChoices.objects.filter(rating_block_id=block).count() == 0 else "\n" + "\n".join(
                      choice.choice for choice in AnswerChoices.objects.filter(rating_block_id=block)))) for
                 block in rating_blocks)
-            print(self.fields['dsl_field'].initial.find("\r"))
 
     def clean_dsl_field(self):
         dsl = self.cleaned_data["dsl_field"].replace("\r", "")

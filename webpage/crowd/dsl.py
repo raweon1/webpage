@@ -19,6 +19,7 @@ def is_quoted(str):
 
 
 def getStimuli(dsl):
+    #TODO Keyword random &| dynamic einbauen
     list = []
     for rating_block in dsl:
         rating_block_list = []

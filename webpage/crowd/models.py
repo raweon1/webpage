@@ -34,6 +34,7 @@ class Task(models.Model):
     task_nr = models.IntegerField()
     instruction = models.CharField(max_length=255, default="", blank=True)
     trap = models.BooleanField(default=False)
+    trap_answer = models.CharField(null=True, blank=True, max_length=35)
 
     class Meta:
         ordering = ["task_nr"]
