@@ -33,12 +33,13 @@ class Task(models.Model):
     campaign_id = models.ForeignKey(Campaign, on_delete=models.CASCADE)
     task_nr = models.IntegerField()
     instruction = models.CharField(max_length=255, default="", blank=True)
+    trap = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["task_nr"]
 
     def __str__(self):
-        return str(self.campaign_id) + "_task:" + str(self.task_nr)
+        return str(self.campaign_id) + ("_trap:" if self.trap else "_task:") + str(self.task_nr)
 
 
 class Rating_block(models.Model):

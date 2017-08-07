@@ -56,6 +56,8 @@ def setup(request):
 
 
 def finish(request):
+    #TODO was passiert wenn eine Trap falsch beantwortet worden ist
+
     tasks = Task.objects.filter(campaign_id=Campaign.objects.get(name=request.session["campaign"]))
     tmp = []
     i = 0
