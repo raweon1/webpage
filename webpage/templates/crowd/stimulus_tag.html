@@ -2,12 +2,12 @@
 {% if stimulus.type == "img" %}
     <img class="stimulus-img" src="{% static stimulus.path %}" alt="{{ stimulus.name }}-{{ stimulus.type }}">
 {% elif stimulus.type == "txt" %}
-    <span class="stimulus-text">
+    <div class="stimulus-text">
         {{ stimulus.name }}
-    </span>
+    </div>
 {% elif stimulus.type == "aud" %}
     <audio class="stimulus-aud" controls>
-        <source src="{{ stimulus.path }}" type="audio.mpeg">
+        <source src="{% static stimulus.path %}" type="audio.mpeg">
         Your browser does not support the audio tag
     </audio>
 {% endif %}

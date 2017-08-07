@@ -4,8 +4,8 @@ from django import forms
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .models import Campaign, Task, Rating_block, Stimulus, Answer, Worker, WorkerProgress
-from .dsl import validate_dsl, keywords, is_quoted
+from .models import Campaign, Task, Rating_block, Stimulus, Answer, Worker, WorkerProgress, AnswerChoices
+from .dsl import validate_dsl, is_quoted, keywords
 
 from pyparsing import ParseException
 
@@ -14,6 +14,7 @@ from ast import literal_eval
 admin.site.register(Answer)
 admin.site.register(Worker)
 admin.site.register(WorkerProgress)
+admin.site.register(AnswerChoices)
 
 
 @admin.register(Stimulus)
@@ -42,8 +43,12 @@ class AdminTaskForm(forms.ModelForm):
         if self.initial:
             rating_blocks = Rating_block.objects.filter(task_id=self.instance)
             self.fields['dsl_field'].initial = "\n".join(
-                ("\n".join(str(stimuli) for stimuli in literal_eval(block.stimuli)) + "\n" + block.answer_type) for
+                ("\n".join(
+                    str(stimuli) for stimuli in literal_eval(block.stimuli)) + "\n" + block.answer_type + (
+                 "" if AnswerChoices.objects.filter(rating_block_id=block).count() == 0 else "\n" + "\n".join(
+                     choice.choice for choice in AnswerChoices.objects.filter(rating_block_id=block)))) for
                 block in rating_blocks)
+            print(self.fields['dsl_field'].initial.find("\r"))
 
     def clean_dsl_field(self):
         dsl = self.cleaned_data["dsl_field"].replace("\r", "")
@@ -101,10 +106,13 @@ def create_rating_block_from_admin_task(sender, **kwargs):
             for ratingblock in dsl:
                 rb = Rating_block(task_id=instance, block_nr=rating_block_nr)
                 rating_block_nr += 1
-                rb.stimuli = str(ratingblock[0])
+                rb.stimuli = ratingblock[0]
                 rb.answer_type = ratingblock[1]
                 rb.save()
-                # TODO answerChoices
+                if ratingblock[1] == keywords['mode_mc']:
+                    for mc in ratingblock[2]:
+                        ac = AnswerChoices(rating_block_id=rb, choice=mc)
+                        ac.save()
         except AttributeError:
             pass
 

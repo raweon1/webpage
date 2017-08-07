@@ -48,7 +48,7 @@ class Rating_block(models.Model):
     stimuli = models.TextField()
     type_choices = (("acr", "ACR"),
                     ("text", "Text"),
-                    ("choice", "Multiple Choice"))
+                    ("multiple_choice", "Multiple Choice"))
     answer_type = models.CharField(max_length=10, choices=type_choices)
 
     class Meta:
@@ -60,8 +60,10 @@ class Rating_block(models.Model):
 
 class AnswerChoices(models.Model):
     rating_block_id = models.ForeignKey(Rating_block, on_delete=models.CASCADE)
-    # Darzustellende Multiple Choice Felder in DSL
-    choice = models.TextField()
+    choice = models.CharField(max_length=25)
+
+    def __str__(self):
+        return str(self.choice)
 
 
 class Worker(models.Model):

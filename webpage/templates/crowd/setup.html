@@ -1,10 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "crowd/base.html" %}
+
+{% block content %}
     <div align="center">
         <br>
         <br>
@@ -17,5 +13,4 @@
         {% url "rate" campaign "0" as the_url %}
         <input type="button" onclick="location.href='{{ the_url }}';" value="Start Campaign"/>
     </div>
-</body>
-</html>
+{% endblock %}

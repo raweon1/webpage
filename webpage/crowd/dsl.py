@@ -3,7 +3,7 @@ from re import sub
 from crowd.models import Stimulus
 
 keywords = dict(stim="stimulus_block", answer="answer_block", mode_text="text", mode_acr="acr",
-                mode_mc="multiple choice")
+                mode_mc="multiple_choice")
 
 stimulus = Group(OneOrMore(Suppress(Keyword(keywords['stim'])) + Group(OneOrMore(Word(printables + " "), stopOn=Keyword(keywords['stim']) ^ Keyword(keywords['answer'])))))
 answer = Suppress(Keyword(keywords['answer'])) + (Keyword(keywords['mode_text']) ^ Keyword(keywords['mode_acr']) ^ (Keyword(keywords['mode_mc']) + Group(OneOrMore(Word(printables + " ")))))

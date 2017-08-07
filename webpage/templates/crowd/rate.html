@@ -1,6 +1,0 @@
-{{ campaign.name }}
-<ul>
-{% for stimuli in campaign.stimuli.all|dictsort:"path" %}
-    <li>{{ stimuli.path }}</li>
-{% endfor %}
-</ul>

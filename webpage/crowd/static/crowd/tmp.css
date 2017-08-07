@@ -51,14 +51,20 @@ body {
 }
 
 .stimulus-block {
-    padding: 10px;
     text-align: center;
+    display: flex;
+    align-items: center;
 }
 
 .stimulus {
-    display: inline-block;
-    padding: 10px;
+    flex: 1;
     vertical-align: middle;
+}
+
+.stimulus-text {
+    font-size: 1.5em;
+    display: inline-block;
+    word-wrap: break-word;
 }
 
 input[type=submit] {

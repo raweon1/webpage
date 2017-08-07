@@ -5,7 +5,7 @@ from django import forms
 from django.utils.timezone import now
 
 from .dsl import getStimuli, keywords
-from .models import Campaign, Task, Rating_block, Worker, Answer, WorkerProgress
+from .models import Campaign, Task, Rating_block, Worker, Answer, WorkerProgress, AnswerChoices
 
 from ast import literal_eval
 
@@ -79,24 +79,30 @@ def finish(request):
     return render(request, "crowd/finish.html", {"ratings": tmp})
 
 
+class HorizontalRadioSelect(forms.RadioSelect):
+    template_name = "horizontal_select.html"
+
+
 class RateForm(forms.Form):
     def __init__(self, *args, **kwargs):
         mode = kwargs.pop("fields")
+        mc = kwargs.pop("mc")
         super(RateForm, self).__init__(*args, **kwargs)
         i = 0
         for answer in mode:
             if answer == keywords['mode_acr']:
                 acr = (("1", 1), ("2", 2), ("3", 3), ("4", 4), ("5", 5),)
-                self.fields['answer_' + str(i)] = forms.ChoiceField(choices=acr, widget=forms.RadioSelect)
+                self.fields['answer_' + str(i)] = forms.ChoiceField(choices=acr, widget=HorizontalRadioSelect)
             elif answer == keywords['mode_text']:
                 self.fields['answer_' + str(i)] = forms.CharField(max_length=255)
+            elif answer == keywords['mode_mc']:
+                self.fields['answer_' + str(i)] = forms.ModelChoiceField(queryset=AnswerChoices.objects.filter(rating_block_id=mc.pop(0)), empty_label=None)
             i += 1
 
 
 def rate(request):
     try:
         task_nr = int(request.session["task_nr"])
-        print(task_nr)
         campaign = Campaign.objects.get(name=request.session["campaign"])
         # fetch Task to display | task_nr wird nicht als kontinuierlich enforced, daher sortieren (wird durch Meta class im Model erledigt) dann [task_nr] nehmen
         tasks = Task.objects.filter(campaign_id=campaign)
@@ -104,7 +110,7 @@ def rate(request):
         # dsl ist als string gespeichert -> muss in Stimulus Objekte gewandelt werden
         dsl = getStimuli([[literal_eval(blocks.stimuli), blocks.answer_type] for blocks in rating_blocks])
         if request.method == "POST":
-            form = RateForm(request.POST, fields=[rating_block[1] for rating_block in dsl])
+            form = RateForm(request.POST, fields=[rating_block[1] for rating_block in dsl], mc=[block for block in rating_blocks.filter(answer_type="multiple_choice")])
             if form.is_valid():
                 progress = WorkerProgress.objects.get(worker_id=Worker.objects.get(name=request.session["worker"]),
                                                       campaign_id=Campaign.objects.get(
@@ -123,12 +129,12 @@ def rate(request):
                     progress.save()
                     return HttpResponseRedirect("/crowd/rate/")
         else:
-            form = RateForm(fields=[rating_block[1] for rating_block in dsl])
+            form = RateForm(fields=[rating_block[1] for rating_block in dsl], mc=[block for block in rating_blocks.filter(answer_type="multiple_choice")])
     except Campaign.DoesNotExist:
         raise Http404("Campaign %s does not exist" % request.session["campaign"])
     except Task.DoesNotExist:
         raise Http404("Campaign %s does not exist" % request.session["campaign"])
-    except KeyError:
-        raise Http404("Start with setup")
+    except KeyError as e:
+        raise Http404("Start with setup" + str(e))
     return render(request, "crowd/stim_rate.html",
                   {'campaign': campaign, 'instruction': tasks[task_nr].instruction, 'dsl': dsl, "form": form})
